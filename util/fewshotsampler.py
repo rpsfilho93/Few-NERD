@@ -19,7 +19,7 @@ class FewshotSampler:
     '''
     sample one support set and one query set
     '''
-    def __init__(self, N, K, Q, samples, classes=None, random_state=0):
+    def __init__(self, N, K, Q, samples, classes=None, target_classes=None,random_state=0):
         '''
         N: int, how many types in each set
         K: int, how many instances for each type in support set
@@ -31,6 +31,7 @@ class FewshotSampler:
         self.K = K
         self.N = N
         self.Q = Q
+        self.target_classes = target_classes
         self.samples = samples
         self.__check__() # check if samples have correct types
         if classes:
@@ -38,6 +39,12 @@ class FewshotSampler:
         else:
             self.classes = self.__get_all_classes__()
         random.seed(random_state)
+
+        if target_classes:
+            for target_class in target_classes:
+                if target_class not in classes:
+                    print(f'[ERROR] missing target class "{target_class}" in the classes set.')
+                    raise ValueError
 
     def __get_all_classes__(self):
         classes = []
@@ -97,27 +104,28 @@ class FewshotSampler:
         support_idx = []
         query_class = {'k':self.Q}
         query_idx = []
-        target_classes = random.sample(self.classes, self.N)
-        candidates = self.__get_candidates__(target_classes)
+        if not self.target_classes:
+            self.target_classes = random.sample(self.classes, self.N)
+        candidates = self.__get_candidates__(self.target_classes)
         while not candidates:
-            target_classes = random.sample(self.classes, self.N)
-            candidates = self.__get_candidates__(target_classes)
+            self.target_classes = random.sample(self.classes, self.N)
+            candidates = self.__get_candidates__(self.target_classes)
 
         # greedy search for support set
         while not self.__finish__(support_class):
             index = random.choice(candidates)
             if index not in support_idx:
-                if self.__valid_sample__(self.samples[index], support_class, target_classes):
+                if self.__valid_sample__(self.samples[index], support_class, self.target_classes):
                     self.__additem__(index, support_class)
                     support_idx.append(index)
         # same for query set
         while not self.__finish__(query_class):
             index = random.choice(candidates)
             if index not in query_idx and index not in support_idx:
-                if self.__valid_sample__(self.samples[index], query_class, target_classes):
+                if self.__valid_sample__(self.samples[index], query_class, self.target_classes):
                     self.__additem__(index, query_class)
                     query_idx.append(index)
-        return target_classes, support_idx, query_idx
+        return self.target_classes, support_idx, query_idx
 
     def __iter__(self):
         return self

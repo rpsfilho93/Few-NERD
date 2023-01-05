@@ -13,6 +13,7 @@ import argparse
 import os
 import torch
 import random
+from typing import List
 
 def set_seed(seed):
     torch.manual_seed(seed)
@@ -25,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--trainN', default=2, type=int,
             help='N in train')
+    parser.add_argument('--target_classes', default=["NUMERO_EXERCICIO", "MODALIDADE_LICITACAO"], type=List[str],
+            help='Classes to be used on training')
     parser.add_argument('--N', default=2, type=int,
             help='N way')
     parser.add_argument('--K', default=2, type=int,
@@ -92,6 +95,11 @@ def main():
     batch_size = opt.batch_size
     model_name = opt.model
     max_length = opt.max_length
+    target_classes = opt.target_classes if opt.target_classes else None  
+
+    if len(opt.target_classes) != N:
+       print("[Error] Mismatch between the number of target classes and N.")
+       raise ValueError
 
     print("{}-way-{}-shot Few-Shot NER".format(N, K))
     print("model: {}".format(model_name))
@@ -110,14 +118,14 @@ def main():
     opt.dev = f'{opt.dataset_path}/dev.txt'
     
     train_data_loader = get_loader(opt.train, tokenizer,
-            N=trainN, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data)
+            N=trainN, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data, target_classes=target_classes)
     val_data_loader = get_loader(opt.dev, tokenizer,
-            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data)
+            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data, target_classes=target_classes)
     test_data_loader = get_loader(opt.test, tokenizer,
-            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data)
+            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data, target_classes=target_classes)
 
         
-    prefix = '-'.join([model_name, str(N), str(K), 'seed'+str(opt.seed)])
+    prefix = '-'.join([model_name.split("/")[-1], str(N), str(K), 'seed'+str(opt.seed)])
     if opt.dot:
         prefix += '-dot'
     if len(opt.ckpt_name) > 0:

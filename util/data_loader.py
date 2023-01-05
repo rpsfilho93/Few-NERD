@@ -64,7 +64,7 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
     """
     Fewshot NER Dataset
     """
-    def __init__(self, filepath, tokenizer, N, K, Q, max_length, ignore_label_id=-1):
+    def __init__(self, filepath, tokenizer, N, K, Q, max_length, ignore_label_id=-1, target_classes=None):
         if not os.path.exists(filepath):
             print("[ERROR] Data file does not exist!")
             assert(0)
@@ -75,7 +75,7 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
         self.tokenizer = tokenizer
         self.samples, self.classes = self.__load_data_from_file__(filepath)
         self.max_length = max_length
-        self.sampler = FewshotSampler(N, K, Q, self.samples, classes=self.classes)
+        self.sampler = FewshotSampler(N, K, Q, self.samples, classes=self.classes, target_classes=target_classes)
         self.ignore_label_id = ignore_label_id
 
     def __insert_sample__(self, index, sample_classes):
@@ -311,9 +311,9 @@ def collate_fn(data):
     return batch_support, batch_query
 
 def get_loader(filepath, tokenizer, N, K, Q, batch_size, max_length, 
-        num_workers=8, collate_fn=collate_fn, ignore_index=-1, use_sampled_data=True):
+        num_workers=8, collate_fn=collate_fn, ignore_index=-1, use_sampled_data=True, target_classes=None):
     if not use_sampled_data:
-        dataset = FewShotNERDatasetWithRandomSampling(filepath, tokenizer, N, K, Q, max_length, ignore_label_id=ignore_index)
+        dataset = FewShotNERDatasetWithRandomSampling(filepath, tokenizer, N, K, Q, max_length, ignore_label_id=ignore_index, target_classes=target_classes)
     else:
         dataset = FewShotNERDataset(filepath, tokenizer, max_length, ignore_label_id=ignore_index)
     data_loader = data.DataLoader(dataset=dataset,
